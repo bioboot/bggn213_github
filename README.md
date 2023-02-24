@@ -1,2 +1,2 @@
-# bggn213_github
+# BGGN213
 My classwork from BGGN213
