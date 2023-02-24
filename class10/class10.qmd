@@ -1,0 +1,195 @@
+---
+title: "Class 10: Candy Project"
+author: "Barry"
+format: html
+---
+
+Here we take 538's candy dataset and explore it with methods we have been learning in class (Hint, hint, PCA!).
+
+# Import the data
+
+```{r}
+candy = read.csv("candy-data.csv", row.names=1)
+head(candy)
+```
+
+> Q1. How many different candy types are in this dataset?
+
+```{r}
+nrow(candy)
+```
+
+> Q2. How many fruity candy types are in the dataset?
+
+```{r}
+sum(candy$fruity)
+```
+
+Look up how my candy is doing?
+
+An overview of the dataset
+```{r}
+library("skimr")
+skim(candy)
+```
+
+
+> Q8. Plot a histogram of winpercent values
+
+```{r}
+hist(candy$winpercent)
+```
+
+> Q11. On average is chocolate candy higher or lower ranked than fruit candy?
+
+```{r}
+mean(candy$winpercent)
+```
+```{r}
+win.choc <- candy[as.logical(candy$chocolate),"winpercent"]
+win.fruit <- candy[as.logical(candy$fruity),"winpercent"]
+```
+
+```{r}
+mean(win.choc)
+mean(win.fruit)
+```
+```{r}
+t.test(win.choc, win.fruit)
+```
+
+> Q13. What are the five least liked candy types in this set?
+
+```{r}
+sort( c(5,4,1,2) )
+```
+```{r}
+order( c(5,4,1,2) )
+```
+```{r}
+ord.ind <- order(candy$winpercent)
+head(candy[ord.ind,] )
+```
+
+
+> Q14. What are the top 5 all time favorite candy types out of this set?
+
+```{r}
+ord.ind <- order(candy$winpercent, decreasing = TRUE)
+head(candy[ord.ind,], 5 )
+
+```
+
+> Q15. Make a first barplot of candy ranking based on winpercent values.
+
+
+```{r}
+library(ggplot2)
+
+ggplot(candy) +
+  aes(winpercent, rownames(candy)) +
+  geom_col() + 
+  theme_bw()
+```
+
+> Q16. This is quite ugly, use the reorder() function to get the bars sorted by winpercent?
+
+
+```{r}
+ggplot(candy) +
+  aes(winpercent, reorder(rownames(candy),winpercent)) +
+  geom_col() + 
+  theme_bw()
+
+
+```
+
+
+Let's add some color. First we will make a color vector.
+
+
+```{r}
+my_cols=rep("black", nrow(candy))
+my_cols[as.logical(candy$chocolate)] = "chocolate"
+my_cols[as.logical(candy$bar)] = "brown"
+my_cols[as.logical(candy$fruity)] = "pink"
+```
+
+```{r}
+ggplot(candy) +
+  aes(winpercent, reorder(rownames(candy),winpercent)) +
+  geom_col(fill=my_cols) + 
+  theme_bw()
+
+
+```
+
+Now, for the first time, using this plot we can answer questions like:
+
+> Q17. What is the worst ranked chocolate candy?
+
+Sixlets
+
+> Q18. What is the best ranked fruity candy?
+
+Starburst
+
+
+# 4. Taking a look at pricepercent
+
+What about value for money? What is the the best candy for the least money? One way to get at this would be to make a plot of winpercent vs the pricepercent variable. 
+
+```{r}
+ggplot(candy) +
+  aes(winpercent, pricepercent, label=rownames(candy)) +
+  geom_point(col=my_cols) + 
+  geom_text(col=my_cols)
+```
+
+Let's change the pink to red so we can see it better
+
+```{r}
+my_cols[as.logical(candy$fruity)] = "red"
+```
+
+
+
+```{r}
+library(ggrepel)
+
+# How about a plot of price vs win
+ggplot(candy) +
+  aes(winpercent, pricepercent, label=rownames(candy)) +
+  geom_point(col=my_cols) + 
+  geom_text_repel(col=my_cols, size=3.3, max.overlaps = 5)
+```
+
+
+# 5 Exploring the correlation structure
+
+Now that we’ve explored the dataset a little, we’ll see how the variables interact with one another. We’ll use correlation and view the results with the `corrplot` package to plot a correlation matrix.
+
+```{r}
+library(corrplot)
+```
+
+```{r}
+cij <- cor(candy)
+corrplot(cij)
+```
+
+# Principal Component Analysis
+
+Let’s apply PCA using the `prcom()` function to our candy dataset remembering to set the scale=TRUE argument.
+
+```{r}
+pca <- prcomp(candy, scale=TRUE)
+summary(pca)
+```
+
+Now we can plot our main PCA score plot of PC1 vs PC2.
+
+```{r}
+plot(pca$x[,1], pca$x[,2], col=my_cols, pch=16)
+```
+
