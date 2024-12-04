@@ -1,0 +1,104 @@
+---
+title: "Class 5: Data Viz with ggplot"
+author: "Barry (PID: 911)"
+format: pdf
+---
+
+R has lot's of ways to make figures and graphs in particular.
+One that comes with R out of the box is called **"base" R** - the `plot()` function.
+
+```{r}
+plot(cars)
+```
+
+A very popular package in this area is called **ggplot2**.
+
+Before I can use any add-on package like this I must install it with the `install.packages("ggplot2")` command/function.
+
+Then to use the package I need to load it with a `library(ggplot2)` call.
+
+
+```{r}
+library(ggplot2)
+
+ggplot(cars) +
+  aes(x=speed, y=dist) +
+  geom_point()
+```
+
+For "simple" plots like this one base R code will be much shorter than ggplot code.
+
+Let's fit a model and show it on my plot:
+
+```{r}
+ggplot(cars) +
+  aes(x=speed, y=dist) +
+  geom_point() +
+  geom_smooth() 
+```
+
+Every ggplot has at least 3 layers
+
+- **data** (data.frame with the numbers and stuff you want to plot)
+- **aes**thetics (mapping of your data columns to your plot)
+- **geom**s (there are tones of these, basics are `geom_point()`, `geom_line()`, `geom_col()`)
+
+```{r}
+head(mtcars)
+```
+
+Make me a ggplot of the `mtcars` data set using `mpg` vs `disp`
+and set the size of the points to the `hp`
+and set the color to `am`
+
+```{r}
+ggplot(mtcars) +
+  aes(x=mpg, y=disp, size=hp, col=am) +
+  geom_point()
+```
+
+## Gene expression plot
+
+```{r}
+url <- "https://bioboot.github.io/bimm143_S20/class-material/up_down_expression.txt"
+genes <- read.delim(url)
+head(genes)
+```
+
+```{r}
+nrow(genes)
+```
+
+There are `r nrow(genes)` genes in this dataset.
+
+```{r}
+unique(genes$State)
+```
+The `table()` function is a super useful utility to tell me how many entries of each type there are.
+
+```{r}
+round( table(genes$State) / nrow(genes), 3)
+```
+
+The functions `nrow()`, `ncol()`, and `table()` are ones I want you to know.
+
+> Key points:
+Saving plots with **ggsave()**
+Different plot "types" with different `geoms_**()`
+Faceting with `facet_wrap()`
+Multi-plot layout with the **patchwork** package.
+
+```{r}
+p <- ggplot(mtcars) +
+  aes(mpg, disp) +
+  geom_point()
+
+#ggsave("myplot.pdf")
+```
+
+
+
+```{r}
+p
+```
+

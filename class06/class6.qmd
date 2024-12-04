@@ -1,0 +1,168 @@
+---
+title: "Class 6: R functions"
+author: "Barry (PID: 911)"
+format: html
+---
+
+My first function :-)
+
+```{r}
+add <- function(x, y=1, z=0) {
+  x + y + z
+}
+```
+
+Can I just use it?
+
+```{r}
+add(1,1)
+add(x=1, y=100)
+add(x=c(100,1,100), y=1)
+```
+```{r}
+add(10)
+add(10, y=10)
+```
+
+```{r}
+add( 1, 1, z=1)
+```
+
+# A second function 
+
+
+Let's try something more intresting:
+
+```{r}
+#generate_dna <- function() {
+  
+bases <- c("A", "C", "G", "T")
+sequence <- sample(bases, size=5, replace = TRUE)
+
+```
+
+That is my wee working snipet now I can make it into a function.
+
+```{r}
+generate_dna <- function(length) {
+  bases <- c("A", "C", "G", "T")
+  sequence <- sample(bases, size=length, 
+                     replace = TRUE)
+  return(sequence)
+}
+```
+
+
+```{r}
+generate_dna(10)
+```
+```{r}
+aa <- unique(bio3d::aa.table$aa1)[1:20]
+```
+
+Write a protein generating function
+
+```{r}
+generate_protein <- function(length) {
+  
+  aa <- unique(bio3d::aa.table$aa1)[1:20]
+  sequence <- sample(aa, size=length, replace = T)
+  sequence <- paste(sequence, collapse = "")
+  return(sequence)  
+  
+}
+```
+
+```{r}
+generate_protein(6)
+```
+
+Generate random protein sequences of length 6 to 12
+
+```{r}
+answer <- sapply(6:12, generate_protein)
+answer
+```
+```{r}
+cat( paste(">id.", 6:12, "\n", answer, sep=""), sep="\n" )
+```
+
+```{r}
+write.fasta(seqs=answer[1], file="tmp.fa")
+```
+
+Can convert to a matrix/data.frame perhaps?
+```{r}
+#append=TRUE
+```
+
+
+Food wide format:
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url, row.names = 1)
+head(x)
+```
+Try with foods as 1st column
+```{r}
+y <- read.csv(url)
+head(y)
+```
+
+```{r}
+df <- y %>%
+  pivot_longer(cols = -X,              # Pivot all columns except 'X'
+               names_to = "Country",   # New column for the country names
+               values_to = "Value")    # New column for the values
+
+# Print the tidy data
+colnames(df)[1] <- "Food"
+head(df)
+```
+
+```{r}
+ggplot(df) +
+  aes(Country, Value, fill=Food) +
+  geom_col()
+
+```
+
+
+```{r}
+ggplot(df) +
+  aes(Country, Value, fill=Food) +
+  geom_col(position = "dodge")
+```
+
+```{r}
+#library(GGally)
+
+#ggpairs(df, cardinality_threshold=18, aes(color=Food) )
+```
+
+
+
+```{r}
+#| eval: false
+tidy_df <- x %>%
+  pivot_longer(cols = everything(),   # Pivot all columns into long format
+               names_to = "Country",  # New column for the country names
+               values_to = "Value",   # New column for the values
+               names_transform = list(row.names = as.factor)) # Keep row names
+
+tidy_df <- tibble::rownames_to_column(tidy_df, "Food_Type")
+```
+
+---
+
+```{r}
+df <- x %>%
+  pivot_longer(cols = everything(),   # Pivot all columns into long format
+               names_to = "Country",  # New column for the country names
+               values_to = "Value",   # New column for the values
+               names_transform = list(row.names = as.factor)) # Keep row names
+
+head(df)
+```
+
