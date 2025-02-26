@@ -9,7 +9,7 @@ Winter 2025 class content:
 
 - Class **06** [R functions](https://github.com/bioboot/bggn213_github/blob/main/class06/class06.qmd)
 
-- Class 07 [Introduction to machine learning for Bioinformatics 1]()
+- Class **07** [Introduction to machine learning for Bioinformatics 1]()
 
 - Class 08 [Unsupervised learning mini-project]()
 
