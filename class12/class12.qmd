@@ -1,0 +1,339 @@
+---
+title: "AlphaFold analysis"
+author: "Barry"
+format: html
+---
+
+Here we demonstrate how to analyze and make sense of models from AlphaFold. We begin by reading all the model PDB files...
+
+```{r}
+library(bio3d)
+```
+
+PDB file names of my models
+```{r}
+files <- list.files("hiv_monomer_94b5b/", 
+                    pattern = ".pdb",
+                    full.names = T)
+```
+
+Align and superpose
+```{r}
+pdbs <- pdbaln(files, fit=TRUE, exefile="msa")
+```
+
+RMSD analysis
+
+```{r}
+rd <- rmsd(pdbs)
+mean(rd)
+```
+
+```{r}
+source( "https://tinyurl.com/newviewngl" )
+library(NGLVieweR)
+view.pdbs(pdbs)
+```
+
+# PCA
+
+```{r}
+pc <- pca(pdbs)
+plot(pc)
+```
+
+# Residue conservation from alignment file
+
+AlphaFold writes out the MSA it calculated and used for struture prediction to a A3M format file that we can read into R for further analysis:
+
+```{r}
+aln_file <- list.files(path="hiv_monomer_94b5b/",
+                       pattern=".a3m$",
+                       full.names = TRUE)
+aln_file
+```
+```{r}
+aln <- read.fasta(aln_file, to.upper = TRUE)
+```
+
+```{r}
+dim(aln$ali)
+```
+Score residue conservation:
+
+```{r}
+sim <- conserv(aln)
+```
+
+```{r}
+con <- consensus(aln, cutoff = 0.9)
+con$seq
+```
+Plot the conservation along the sequence/structure
+
+```{r}
+plot(sim, typ="h")
+```
+
+Lets look at these conserved positions in the structure:
+```{r}
+pdb <- read.pdb( files[1] )
+
+view.pdb(pdb, backgroundColor = "pink", 
+         highlight = atom.select(pdb, resno=25:28),
+         highlight.style = "spacefill") 
+  
+```
+
+---
+
+We can use `write.pdb()` to convert a `pdb` object to a single element character string vector as required by `NGLVieweR()`
+
+```{r}
+pdb2string <- function(pdb, ...) {
+  return( paste(capture.output(
+    write.pdb(pdb, file="", ...)), 
+    collapse = "\n") )
+}
+```
+
+```{r}
+n <- "~/Desktop/courses/BIMM143/class11/nma.pdb"
+parms <- list(colorScheme = "residueindex")
+#pdb <- read.pdb("1bg2")
+pdb <- read.pdb(n, multi=T)
+
+NGLVieweR(pdb2string(pdb), format = "pdb") |>
+  addRepresentation("cartoon", param = parms)
+```
+
+
+
+
+To work for `pdbs` objects we can first extract a 
+`pdb` object for the first `$xyz` row/structure/frame and then pass this along with all `xyz` coord frames to `pdb2string()` and on to `NGLVieweR()`. If there are NAs (gaps) then this function will not work.
+
+```{r}
+#pdbs2string <- function(pdbs) {
+#  z <- pdbs2pdb(pdbs, inds = 1)#, rm.gaps = TRUE)
+#  x <- pdb2string(pdb=z[[1]], xyz=pdbs$xyz)
+#  return(x)
+#}
+
+pdbs2string <- function(pdbs, collapse=TRUE) {
+  z <- pdbs2pdb(pdbs)#, rm.gaps = TRUE)
+  x <- NULL
+  for(i in 1:length(pdbs$id)) {
+    x <- c(x, pdb2string( pdb=z[[i]]) )
+  }
+  # Rtn all in one element or element per pdb
+  if(collapse) {
+    return( paste(x, collapse = "\n") )
+  } else{ return(x) }
+}
+```
+
+```{r}
+NGLVieweR(pdbs2string(pdbs), format = "pdb") |>
+  addRepresentation("cartoon", param = parms)
+
+```
+
+
+```{r}
+a <- mktrj(pc, file="")
+```
+
+```{r}
+# Convert a PCA, NMA or ENMA object to a string as used by NGLVieweR(). This calls the mktrj() function.
+# Elipses for passing extra args are not working??
+
+pca2string <- function(pc, ...) {
+  return( paste(capture.output(mktrj(pc, file="", ...)), collapse = "\n") )
+}
+```
+
+```{r}
+x <- pca2string(pc, pdb=z)
+NGLVieweR(x, format = "pdb") |>
+  addRepresentation("cartoon", param = parms)
+```
+
+
+I wonder if the pdbs2string works with real pdbs objects
+
+```{r}
+files <- list.files("../class10/pdbs/split_chain",
+                    pattern = ".pdb",
+                    full.names = TRUE)
+
+ps <- pdbaln(files, fit=T, exefile="msa")
+```
+
+
+```{r}
+#x <- pdbs2string(ps)
+x <- pdbs2string(ps)
+```
+
+```{r}
+parms <- list(colorScheme = "residueindex")
+#parms <- list(colorScheme = "modelindex")
+#parms <- list(colorScheme = "sstruc")
+#parms <- list(colorScheme = "bfactor")
+#parms <- list(colorScheme = "chainid")
+#parms <- list(colorScheme = "chainindex")
+#parms <- list(colorScheme = "atomindex")
+#Residue
+#Structure
+#parms <- list(colorScheme = "electrostatic")
+#parms <- list(colorScheme = "occupancy")
+
+NGLVieweR( x, format = "pdb") |>
+  addRepresentation("cartoon", param = parms)
+
+#list(colorScheme = "chainid"))#parms)
+  
+```
+How would you color this by molecule or chain?
+If we return a multi element vector then color each structure/element seperately is straight forward.
+
+```{r}
+cols=NULL
+cols=c("red","blue")
+colorScheme=NULL
+colorScheme="residueindex"
+#colorScheme="sstruc"
+#colorScheme="bfactor"
+backgroundColor <- "white"
+representation="cartoon"
+pdbs=ps
+```
+
+
+```{r}
+
+#' Quick interactive PDBS object viewing using NGLVieweR
+#'
+#' @param pdbs a multi-structure `pdbs` object as obtained from `pdbaln()`, `read.fasta.pdb()`, etc.
+#'
+#' @param cols a vector of colors for each structure. If NULL then the output of `vmd.colors()` is used.
+#' @param colorScheme if not NULL then this over-rides `colors`. Possible values include "residueindex", "modelindex", "sstruc", "bfactor", "chainid", "chainindex", "atomindex", "occupancy"
+#' @param representation the representation style, usefull values are line, tube, cartoon, trace, and backbone, ball+stick. 
+#' @param backgroundColor set the display area background color.
+#'
+#' @returns an **NGLVieweR** display object that can be displayed or further added to using `NGLVieweR::addRepresentation()` and friends.
+#' 
+#' @author Barry Grant, \email{bjgrant@@ucsd.edu}
+#' 
+#' @seealso \code{view.pdb()}, \code{pdb2ngl()}, \code{NGLVieweR::NGLVieweR()}, \code{bio3d::read.pdb()}
+#' 
+#' @export
+#'
+#' @examples
+#'  # pth <- "~/Desktop/courses/BIMM143/class10/pdbs/split_chain/"
+#'  # files <- list.files(path=pth, full.names = T)
+#'  # pdbs <- pdbaln(files, fit=T, exefile="msa")
+#'  
+#'  view.pdbs(pdbs, representation = "cartoon")
+#'  # Trace, tube, line, cartoon, ball+stick
+#'  view.pdbs(pdbs, representation = "trace")
+#'  view.pdbs(pdbs, colors = c("red","blue") )
+#'  view.pdbs(pdbs, colorScheme = "residueindex") 
+#'  
+testme <- function(pdbs, 
+                   cols=NULL, 
+                   colorScheme=NULL,
+                   representation="cartoon",
+                   backgroundColor = "white"){
+  
+  # Convert to multi-element character vector 
+  x <- pdbs2string(pdbs, collapse=FALSE)
+
+  n.pdbs <- length(pdbs$id)
+
+  if(is.null(colorScheme)) {  
+    if(is.null(cols)) {
+      cols=bio3d::vmd_colors( length(x) )
+    }
+    if(length(cols) < n.pdbs) {
+      warning("Not ennough distinct cols for each structure, recycling")
+      cols <- rep(cols, length.out=n.pdbs)
+    }
+    # Names cause JSON/NGL problems
+    names(cols) <- NULL
+    params <- list(color = cols[1])
+  } else{
+    cols <- NULL
+    #params <- list(colorScheme = "residueindex")
+    params <- list(colorScheme = colorScheme)
+  }
+
+  model <- NGLVieweR::NGLVieweR( x[1], format = "pdb") |>
+    NGLVieweR::stageParameters(backgroundColor = backgroundColor) |>
+    NGLVieweR::addRepresentation(representation, param=params)
+    #param = list(color = colors[1]))
+
+  for(j in 2:length(x)) {
+    if(!is.null(cols)) {
+      params <- list(color = cols[j])
+    }
+    model <- model |> 
+      NGLVieweR::addStructure(x[j], format="pdb") |>
+      NGLVieweR::addRepresentation(representation, param=params)
+      #param = list(color = colors[j])) 
+  }
+
+  return(model)
+}
+```
+
+
+```{r}
+#' Convert a bio3d PCA or NMA object to a character vector for NGLVieweR input
+#'
+#' @param pc the results of principal component analysis or normal mode analysis as obtained with `pca()` or `nma()` and friends.
+#' @param ... Extra arguments passed to `mktrj()`.
+#'
+#' @returns a character vector of structure data.
+#' 
+#' @author Barry Grant, \email{bjgrant@@ucsd.edu}
+#' 
+#' @seealso \code{view.pdb()}, \code{pdb2string()}, \code{NGLVieweR::NGLVieweR()}, \code{bio3d::nma()}, \code{bio3d::pca()}, \code{bio3d::mktrj()}.
+#' 
+#' @export
+#'
+#' @examples
+#'  pdb <- read.pdb("6s36")
+#'  n <- nma(pdb)
+#'  NGLVieweR::NGLVieweR( pca2string(n), format="pdb") |> 
+#'     NGLVieweR::addRepresentation("cartoon")
+#'
+#'  # Or more simpley...     
+#'  # view.pdb(n) # Does not work yet!!!
+#'  view.pdb(n, colorScheme = "residueindex") 
+#'  
+pca2string <- function(pc, ...) {
+  return( paste(capture.output(
+    mktrj(pc, file="", ...)), 
+      collapse = "\n") )
+}
+
+```
+
+
+```{r}
+view.pdbs(ps)
+```
+
+```{r}
+NGLVieweR("7CID") %>%
+  addRepresentation("cartoon",
+                    param = list(name = "cartoon", 
+                                 #sele = "20-50 OR 49-150",
+                                 color = list(
+                                   list("#FF0000", "20-50"),
+                                   list("yellow", "49-100")
+                                 ))) 
+```
+
