@@ -7,4 +7,4 @@ Winter 2025 class content:
 
 - Class 05 Data viz with ggplot2
 
-- Class 06 R functions
+- Class 06 [R functions](https://github.com/bioboot/bggn213_github/blob/main/class06/class06.qmd)
